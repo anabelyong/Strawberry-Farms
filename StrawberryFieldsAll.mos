@@ -1,0 +1,38 @@
+model StrawberryFieldsStage1
+uses "mmxprs"
+
+declarations
+    Ingredients: set of string
+    Nutrients: set of string
+    Products: set of string
+    MonthNames: set of string
+    GrowingCost: integer
+    IngredientBuyPrice: array(Ingredients) of real
+    IngredientSellPrice: array(Ingredients) of real
+    IngredientSupply: array(Ingredients) of real
+    ProductionCapacity: integer
+    ProductMakeCost: integer
+    ProductSellPrice: array of real
+    ProductDemand: array(Products) of real
+    NutrientContent: array(Nutrients, Ingredients) of real
+    ContentRequirement: array(Nutrients) of real
+    ContentLimit: array(Nutrients) of real
+    UnitStorageCost: real
+    WarehouseSize: integer
+    Sell: array(Products) of mpvar
+
+end-declarations
+
+initialisations from "StrawberryFieldRegular.dat"
+    Ingredients Nutrients Products MonthNames GrowingCost IngredientBuyPrice
+    IngredientSupply IngredientSellPrice IngredientDemand ProductionCapacity
+    ProductMakeCost ProductSellPrice ProductDemand NutrientContent
+    ContentRequirement ContentLimit UnitStorageCost WareHouseSize
+end-initialisations
+
+TotalIncome := forall(p in Products) sell(p)*productsellprice(p)-productmakecost*sell(p)-
+growingcost
+
+forall(m in Months) do:
+
+

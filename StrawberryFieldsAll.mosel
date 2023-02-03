@@ -1,0 +1,8 @@
+model StrawberryFields
+
+uses "mmxprs"
+
+declarations:
+    Ingredients: set of string
+    
+end declarations.

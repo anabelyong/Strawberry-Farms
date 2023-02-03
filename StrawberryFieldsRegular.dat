@@ -1,0 +1,31 @@
+Ingredients: ["Fresh strawberries" "Thin cream" "Sugar"]
+Nutrients: ["Fruit" "Sugar" "Fat"]
+Products: ["Regular ice cream"]
+MonthNames: [
+	"Season"]
+GrowingCost: 10000
+IngredientBuyPrice:   [0.00 1.10 0.20]
+IngredientSupply:     [12000 3000 6000]
+IngredientSellPrice:  [5.00 1.90 0.00]
+IngredientDemand:     [6000 0000 0000]
+ProductionCapacity: 4000
+ProductMakeCost: 0.40
+ProductSellPrice: [1.25]
+ProductDemand: [10000.0]
+NutrientContent: [
+	1.00 0.000 0.000
+	0.06 0.022 1.000
+	0.00 0.191 0.000
+	]
+ContentRequirement: [
+	0.30
+	0.20
+	0.04
+	]
+ContentLimit:       [
+	0.40
+	0.40
+	0.07
+]
+UnitStorageCost: 0.05
+WarehouseSize: 4000

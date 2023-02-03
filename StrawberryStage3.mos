@@ -1,0 +1,95 @@
+model StrawberryStage3
+  uses "mmxprs"
+
+   declarations
+    NMonths = 12
+    Months = 1..NMonths
+    Ingredients: set of string
+    Nutrients: set of string
+    Products: set of string
+    MonthNames: array(Months) of string
+    GrowingCost: integer
+    IngredientBuyPrice: array(Ingredients) of real
+    IngredientSupply: array(Ingredients, Months) of real
+    IngredientSellPrice: array(Ingredients) of real
+    IngredientDemand: array(Ingredients, Months) of real
+    ProductionCapacity: real
+    ProductMakeCost: real
+    ProductSellPrice: array(Products) of real
+    ProductDemand: array(Products, Months) of real
+    NutrientContent: array(Nutrients, Ingredients) of real
+    ContentRequirement: array(Nutrients, Products) of real
+    ContentLimit: array(Nutrients, Products) of real
+    UnitStorageCost: real
+    WarehouseSize: real
+    
+    ProductMake: array(Products, Months) of mpvar
+    ProductSell: array(Products, Months) of mpvar
+    ProductStock: array(Products, Months) of mpvar
+    
+    IngredientUsed: array(Ingredients, Products, Months) of mpvar
+    IngredientBuy: array(Ingredients, Months) of mpvar
+    IngredientSold: array(Ingredients, Months) of mpvar
+  end-declarations
+
+  initialisations from "StrawberryFieldsPlan.dat"
+    Ingredients Nutrients Products MonthNames GrowingCost IngredientBuyPrice
+    IngredientSupply IngredientSellPrice IngredientDemand ProductionCapacity
+    ProductMakeCost ProductSellPrice ProductDemand NutrientContent
+    ContentRequirement ContentLimit UnitStorageCost WarehouseSize
+  end-initialisations
+
+  TotalIncome := sum(p in Products, m in Months) ProductSell(p, m)*ProductSellPrice(p) + sum(m in Months, i in Ingredients) IngredientSold(i, m)*IngredientSellPrice(i)
+  TotalCost :=  sum(p in Products, m in Months) ProductMakeCost*ProductMake(p, m) + GrowingCost + sum(m in Months,i in Ingredients) (IngredientBuyPrice(i)*IngredientBuy(i, m)) + UnitStorageCost*(sum(p in Products, m in Months)ProductStock(p, m))
+  TotalProfit := TotalIncome - TotalCost
+
+  forall(m in Months) CapacityCS(m) := sum(p in Products) ProductMake(p, m) <= ProductionCapacity
+  
+  forall(p in Products, m in Months) do
+  	if m = 1 then
+  		InventoryCS(p, m) := ProductStock(p, m) = ProductMake(p, m) - ProductSell(p, m)
+  	else
+  		InventoryCS(p, m) := ProductStock(p, m) = ProductStock(p, m-1)     + ProductMake(p, m) - ProductSell(p, m)
+  	end-if
+  end-do
+  
+  forall(m in Months) do
+	SpaceUsed(m) := sum(p in Products) ProductStock(p, m)
+	WarehouseCS(m) := SpaceUsed(m) <= WarehouseSize
+  end-do
+
+  forall(p in Products, m in Months) do
+      if m = 1 then
+        MakeCS(p, m) := ProductSell(p, m) <= ProductMake(p, m)
+      end-if
+  end-do
+  
+  forall(p in Products, m in Months) ProductDemandCS(p, m) := ProductSell(p, m) <= ProductDemand(p, m)
+
+  forall(n in Nutrients, p in Products, m in Months) do
+    UpperlimitCS(n, p, m) := sum(i in Ingredients) NutrientContent(n, i) * IngredientUsed(i, p, m) <= ContentLimit(n, p) *  ProductMake(p, m)
+    LowerlimitCS(n, p, m) := sum(i in Ingredients) NutrientContent(n, i) * IngredientUsed(i, p, m) >= ContentRequirement(n, p) * ProductMake(p, m)
+  end-do
+
+  forall(i in Ingredients, m in Months) do
+  IngredientUsedCS(i, m) :=  IngredientBuy(i, m) <= IngredientSupply(i, m)
+  IngredientDemandCS(i, m) := IngredientSold(i, m) <= IngredientDemand(i, m)
+  IngredientCS(i, m) :=  IngredientBuy(i, m) - sum(p in Products) IngredientUsed(i, p, m) = IngredientSold(i, m)
+  end-do
+
+forall(p in Products, m in Months) IngreCS(p, m) := sum(i in Ingredients) IngredientUsed(i, p, m) = ProductMake(p, m)
+
+maximise(TotalProfit)
+
+
+forall(p in Products, m in Months) writeln("Make ", Products(p), " ", getsol(ProductMake(p, m)))
+forall(p in Products, m in Months) writeln("Sold ", Products(p), " ",getsol(ProductSell(p, m)))
+! forall(i in Ingredients) writeln("Used ", Ingredients(i), " " ,getsol(sum(p in Products)IngredientUsed(i, p)))
+! forall(i in Ingredients) writeln("Buy ", Ingredients(i), " " ,getsol(IngredientBuy(i)))
+! forall(i in Ingredients) writeln("Sold ", Ingredients(i), " " ,getsol(IngredientSold(i)))
+writeln("Total Income = ", getsol(TotalIncome))
+writeln("Total Cost = ",getsol(TotalCost))
+writeln("Total Profit = ",getsol(TotalProfit))
+
+
+end-model

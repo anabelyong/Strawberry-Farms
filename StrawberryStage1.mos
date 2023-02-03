@@ -1,0 +1,106 @@
+model strawberryStage1
+  uses "mmxprs"
+
+  declarations
+    Ingredients: set of string
+    Nutrients: set of string
+    Products: set of string
+    MonthNames: set of string
+    GrowingCost: integer
+    IngredientBuyPrice: array(Ingredients) of real
+    IngredientSupply: array(Ingredients) of real
+    IngredientSellPrice: array(Ingredients) of real
+    IngredientDemand: array(Ingredients) of real
+    ProductionCapacity: real
+    ProductMakeCost: real
+    ProductSellPrice: array(Products) of real
+    ProductDemand: array(Products) of real
+    NutrientContent: array(Nutrients, Ingredients) of real
+    ContentRequirement: array(Nutrients, Products) of real
+    ContentLimit: array(Nutrients, Products) of real
+    UnitStorageCost: real
+    WarehouseSize: real
+    ProductMake: array(Products) of mpvar
+    ProductSell: array(Products) of mpvar
+    IngredientUsed: array(Ingredients, Products) of mpvar
+    IngredientBuy: array(Ingredients) of mpvar
+    IngredientSold: array(Ingredients) of mpvar
+  end-declarations
+
+  initialisations from "StrawberryFieldsAll.dat"
+    Ingredients Nutrients Products MonthNames GrowingCost IngredientBuyPrice
+    IngredientSupply IngredientSellPrice IngredientDemand ProductionCapacity
+    ProductMakeCost ProductSellPrice ProductDemand NutrientContent
+    ContentRequirement ContentLimit UnitStorageCost WarehouseSize
+  end-initialisations
+
+  TotalIncome := sum(p in Products) ProductSell(p)*ProductSellPrice(p) + sum(i in Ingredients) IngredientSold(i)*IngredientSellPrice(i)
+  TotalCost :=  sum(p in Products) ProductMakeCost*ProductMake(p) + GrowingCost + sum(i in Ingredients) IngredientBuyPrice(i)*IngredientBuy(i)+UnitStorageCost*(sum(p in Products) (ProductMake(p)-ProductSell(p)))
+  TotalProfit := TotalIncome - TotalCost
+
+  CapacityCS := sum(p in Products) ProductMake(p) <= ProductionCapacity
+  StorageCS := sum(p in Products) (ProductMake(p)-ProductSell(p)) <= WarehouseSize
+
+  forall(p in Products) MakeCS(p) := ProductSell(p) <= ProductMake(p)
+  forall(p in Products) ProductDemandCS(p) := ProductSell(p) <= ProductDemand(p)
+
+  forall(n in Nutrients, p in Products) do
+    UpperlimitCS(n, p) := sum(i in Ingredients) NutrientContent(n, i) * IngredientUsed(i, p) <= ContentLimit(n, p) *  ProductMake(p)
+    LowerlimitCS(n, p) := sum(i in Ingredients) NutrientContent(n, i) * IngredientUsed(i, p) >= ContentRequirement(n, p) * ProductMake(p)
+  end-do
+
+  forall(i in Ingredients) do
+  IngredientUsedCS(i) :=  IngredientBuy(i) <= IngredientSupply(i)
+  IngredientDemandCS(i) := IngredientSold(i) <= IngredientDemand(i)
+  IngredientCS(i) :=  IngredientBuy(i) - sum(p in Products) IngredientUsed(i, p) = IngredientSold(i)
+  end-do
+
+forall(p in Products) IngreCS(p) := sum(i in Ingredients) IngredientUsed(i, p) = ProductMake(p)
+
+maximise(TotalProfit)
+procedure Report
+
+fopen("StrawberryFieldsAll.csv", F_OUTPUT)
+write(",")
+forall(i in Ingredients) write(Ingredients(i), ",")
+writeln
+write("Used")
+write(",") 
+forall(i in Ingredients) write(getsol(sum(p in Products)IngredientUsed(i, p)), "," )
+writeln
+write("Buy")
+write(",")
+forall(i in Ingredients) write(getsol(IngredientBuy(i)), "," )
+writeln
+write("Sold")
+write(",")
+forall(i in Ingredients) write(getsol(IngredientSold(i)), "," )
+writeln
+write("Slack")
+write(",")
+forall(i in Ingredients) do !check the numbers in slack
+    Slack:=getslack(IngredientCS(i))
+    write(strfmt(Slack,7), ",") 
+end-do
+writeln
+write("Fair Prices/kg")
+write(",")
+forall(i in Ingredients) do      
+    Dual := getdual(IngredientCS(i))
+        write(strfmt(Dual, 4), ",")
+end-do
+
+! forall(p in Products) writeln("Make Icrecream ", getsol(ProductMake(p)))
+! forall(p in Products) writeln("Sold Icrecream ", getsol(ProductSell(p)))
+! forall(i in Ingredients) writeln("Used ", Ingredients(i), " " ,getsol(IngredientUsed(i)))
+! forall(i in Ingredients) writeln("Buy ", Ingredients(i), " " ,getsol(IngredientBuy(i)))
+! forall(i in Ingredients) writeln("Sold ", Ingredients(i), " " ,getsol(IngredientSold(i)))
+! writeln("Total Income = ", getsol(TotalIncome))
+! writeln("Total Cost = ",getsol(TotalCost))
+! writeln("Total Profit = ",getsol(TotalProfit))
+
+fclose(F_OUTPUT)
+end-procedure
+
+Report
+end-model
